@@ -1,16 +1,25 @@
 import { useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
+import { useEffect } from 'react'
 import './App.css'
 
 function App() {
-  // const [petData, setPetData] = useState({
-  //   petName: '',
-  //   profile: '',
-  //   species: '',
-  //   friendly: false,
-  // });
-  function handleSubmit(e){
+  const [pets, setPets] = useState([])
+  useEffect(() => {
+    const fetchPets = async () => {
+        try {
+            const res = await fetch(`http://localhost:3007/api/example_resources`)
+            const peta =  await res.json()
+            setPets(peta)
+            console.log(peta)
+        } catch (err) {
+            console.log(err.message)
+        }
+    }
+    fetchPets()
+   }, [])
+   async function handleSubmit(e){
     e.preventDefault()
     let form = e.target
     let selectedSpecies = form.querySelector('input[name="species"]:checked');
@@ -20,7 +29,48 @@ function App() {
       species : selectedSpecies ? selectedSpecies.value : '', 
       isFriendly : form.friendly.value,}
     console.log(pet)
+    form.reset()
+    try {
+      // POST request to the server
+      const response = await fetch('http://localhost:3007/api/add_pet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pet),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add pet');
+      }
+
+      const result = await response.json();
+      console.log(result);
+      setPets([[...pets], pet])
+
+    } catch (error) {
+      console.error('Error adding pet:', error);
+    }
+    fetchPets()
   }
+  async function handleRemove(id) {
+    try {
+      // DELETE request 
+      const response = await fetch(`http://localhost:3007/api/delete_pet/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to remove pet');
+      }
+
+      // Remove the pet from the local state
+      setPets((prevPets) => prevPets.filter((pet) => pet.id !== id));
+    } catch (error) {
+      console.error('Error removing pet:', error);
+    }
+  }
+
 
   return (
     <>
@@ -58,12 +108,23 @@ function App() {
         <button type="submit">Add Pet!</button>
       </form>
       <div id="pet-list">
-        <card>
+        {/* <card>
           <p>Pet name</p>
           <img></img>
           <p>Friendly</p>
           <p>Species: <span>Freddy</span></p>
-        </card>
+        </card> */}
+        {pets.map((pet) => {
+          return (
+            <card key={pet.id}>
+            <p>{pet.name}</p>
+            <img src={pet.image}></img>
+            <p>{(!pet.is_Done)? "Friendly" : "Not so Friendly"}</p>
+            <p>Species: <span>{pet.species}</span></p>
+            <button data-id={pet.id} onClick={(e) => handleRemove(e.currentTarget.dataset.id)}>Remove</button>
+          </card>
+          )
+        })}
       </div>
     </>
   );

@@ -21,6 +21,8 @@ form {
 }
 
 #pet-list {
+  display: flex;
+  
   flex-wrap: wrap;
   list-style: none;
 }
